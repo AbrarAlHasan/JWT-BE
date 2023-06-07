@@ -33,7 +33,6 @@ export const sendEmail = async (otp, email, firstName) => {
 export const signup = async (req, res) => {
   try {
     const { name, password, email } = req.body;
-    console.log(req.body);
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(409).json(`${email} already Exists`);
@@ -80,7 +79,6 @@ export const login = async (req, res) => {
 
     user.password = undefined;
     const { accessToken, refreshToken } = generateTokens(user);
-    console.log(accessToken, refreshToken);
     return res.status(200).json({ accessToken, refreshToken });
   } catch (err) {
     console.log(err);
@@ -107,7 +105,6 @@ export async function verifyOTP(req, res, next) {
   try {
     const { otp } = req.body;
     if (parseInt(req.app.locals.OTP) === parseInt(otp)) {
-      console.log("Equal");
       next();
     } else {
       return res.status(401).json("Invalid OTP");
