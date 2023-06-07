@@ -14,8 +14,6 @@ const nodeConfig = {
 let transporter = nodemailer.createTransport(nodeConfig);
 
 export const mailGenerator = (email, otp) => {
-  // console.log(process.env.OTP_EMAIL, process.env.OTP_EMAIL_PASS);
-
   let message = {
     from: "abraralhasanprogrammer@gmail.com",
     to: email,
@@ -25,8 +23,6 @@ export const mailGenerator = (email, otp) => {
 
   transporter
     .sendMail(message)
-    .then((res) => {
-      console.log("OTP has sent to the Mail ", res);
-    })
+    .then((res) => {})
     .catch((err) => console.log(err));
 };
