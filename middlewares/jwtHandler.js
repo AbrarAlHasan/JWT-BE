@@ -8,7 +8,7 @@ export const signToken = (details, type) => {
     });
   } else if (type === "refresh") {
     return jwt.sign({ details }, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: "10m",
+      expiresIn: "24h",
     });
     // logic for generating a refresh token
   }
