@@ -54,7 +54,6 @@ export const createProject = async (req, res) => {
 export const getProjects = async (req, res) => {
   try {
     const { userId } = req.params;
-
     const projectList = await ProjectMember.aggregate([
       { $match: { userId: new mongoose.Types.ObjectId(userId) } },
       {
