@@ -40,6 +40,11 @@ const TaskSchema = new Schema(
       type: Number,
       required: true,
     },
+    createdBy:{
+      type:mongoose.Schema.ObjectId,
+      required:true,
+      ref:"User"
+    }
   },
   { timestamps: true }
 );

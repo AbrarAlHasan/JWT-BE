@@ -3,6 +3,10 @@ import ProjectMember from "../Models/ProjectMembersModel.js";
 import Task from "../Models/TaskModel.js";
 import { checkAccess } from "./AccessController.js";
 import Config from "../Config/index.js";
+import TaskHistory from "../Models/TaskHistory.js";
+import User from "../../models/user.model.js";
+import { taskKeyDescription } from "../../Utils/descriptionHandling.js";
+import { formatDateTimeTimezone } from "../../Utils/FormatDateTime.js";
 
 export const addTask = async (req, res) => {
   try {
@@ -17,6 +21,7 @@ export const addTask = async (req, res) => {
       tags,
       progress,
       memberId,
+      createdBy,
     } = req.body;
     const newTask = new Task({
       projectId,
@@ -28,22 +33,27 @@ export const addTask = async (req, res) => {
       priority,
       tags,
       progress,
+      createdBy,
     });
 
     const checkForWriteAccess = await checkAccess(
       memberId,
       Config.taskModuleId
     );
-    console.log(memberId,Config.taskModuleId)
-    console.log(checkForWriteAccess)
+
     if (!checkForWriteAccess.writeAccess) {
       return res.status(400).json("Access Denied Please contact the Owner");
     }
-
     const task = await newTask.save();
+    const userDetails = await User.findById(createdBy);
+    const taskHistory = new TaskHistory({
+      taskId: task?._id,
+      createdBy,
+      description: `The Task has been Created by ${userDetails?.name}`,
+    });
+    await taskHistory.save();
     return res.status(200).json(task);
   } catch (err) {
-    console.log(err);
     return res.status(500).json(err._message);
   }
 };
@@ -62,7 +72,6 @@ export const getTasks = async (req, res) => {
       query.endDate = { $lt: today }; // Tasks with endDate less than today's date
     }
     const tasks = await Task.find(query).populate("assignedTo", "name");
-    console.log(tasks);
 
     return res.status(200).json(tasks);
   } catch (err) {
@@ -197,5 +206,91 @@ export const getMembers = async (req, res) => {
     return res.status(200).json(projectMembers);
   } catch (err) {
     return res.status(500).json(err.message);
+  }
+};
+
+export const editTask = async (req, res) => {
+  try {
+    const { _id, memberId, userId, ...updateFields } = req.body;
+
+    
+    const updateKeys = Object.keys(updateFields);
+    if (!memberId) {
+      return res
+        .status(400)
+        .json("Missing Member ID (memberId) in the request body");
+    }
+
+    const checkForUpdateAccess = await checkAccess(
+      memberId,
+      Config.taskModuleId
+    );
+
+    if (!checkForUpdateAccess.updateAccess) {
+      return res.status(400).json("Access Denied Please contact the Owner");
+    }
+
+    if (!_id) {
+      return res.status(400).json("Task Id Not Found");
+    }
+
+    const taskDetails = await Task.findById(_id);
+
+    if (!taskDetails) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    const userDetails = await User.findById(userId);
+
+    const taskHistoryPostDetails = updateKeys?.map((keyName) => {
+      return {
+        taskId: _id,
+        createdBy: userId,
+        description:
+          updateFields[keyName] === "startDate" ||
+          updateFields[keyName] === "endDate"
+            ? `${userDetails?.name} changed the ${
+                taskKeyDescription[keyName]
+              } to ${formatDateTimeTimezone(updateFields[keyName])}`
+            : `${userDetails?.name} changed the ${taskKeyDescription[keyName]} to ${updateFields[keyName]}`,
+      };
+    });
+
+    const newTaskHistory = await Promise.all(
+      taskHistoryPostDetails?.map(async (data) => {
+        const newTaskHistory = new TaskHistory(data);
+        try {
+          await newTaskHistory.validate();
+          return newTaskHistory;
+        } catch (err) {
+          throw new Error(`Task History Post Failed: ${err.message}`);
+        }
+      })
+    );
+
+    const taskHistorySaved = await TaskHistory.insertMany(newTaskHistory);
+
+    const updatedTask = await Task.findOneAndUpdate({ _id }, updateFields, {
+      new: true,
+    });
+
+    return res.status(200).json(updatedTask);
+  } catch (err) {
+    return res.status(500).json(err.message);
+  }
+};
+
+export const getTaskHistory = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const taskHistory = await TaskHistory.find({ taskId })
+      .sort({
+        createdAt: -1,
+      })
+      .populate("createdBy", "name _id email");
+
+    return res.status(200).json(taskHistory);
+  } catch (error) {
+    return res.status(500).json(error.message);
   }
 };
