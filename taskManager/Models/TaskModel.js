@@ -7,6 +7,7 @@ const TaskSchema = new Schema(
     projectId: {
       type: mongoose.Schema.ObjectId,
       required: true,
+      ref:'Project'
     },
     name: {
       type: String,
@@ -40,11 +41,11 @@ const TaskSchema = new Schema(
       type: Number,
       required: true,
     },
-    createdBy:{
-      type:mongoose.Schema.ObjectId,
-      required:true,
-      ref:"User"
-    }
+    createdBy: {
+      type: mongoose.Schema.ObjectId,
+      required: true,
+      ref: "User",
+    },
   },
   { timestamps: true }
 );

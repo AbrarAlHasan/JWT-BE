@@ -11,6 +11,7 @@ import ModuleRoute from "./taskManager/Routes/ModulesRoute.js";
 import AccessRoute from "./taskManager/Routes/AccessControlRoute.js";
 
 import CustomError from "./Utils/CustomError.js";
+import runAllCronShedulers from './taskManager/Scheduler/index.js'
 
 dotenv.config();
 
@@ -48,5 +49,6 @@ mongoose
         `Database is Connected and Server is Running on Port:${port}`
       );
     });
+    // runAllCronShedulers()
   })
   .catch((err) => console.log(`${err} did not connect`));

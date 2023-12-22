@@ -7,6 +7,12 @@ import TaskHistory from "../Models/TaskHistory.js";
 import User from "../../models/user.model.js";
 import { taskKeyDescription } from "../../Utils/descriptionHandling.js";
 import { formatDateTimeTimezone } from "../../Utils/FormatDateTime.js";
+import { customMailGenerator } from "../../controllers/mailer.js";
+import {
+  taskCreatedTemplate,
+  taskDueDateRemainderTemplate,
+} from "../../Utils/Htmltemplate.js";
+import Project from "../Models/ProjectModel.js";
 
 export const addTask = async (req, res) => {
   try {
@@ -36,6 +42,23 @@ export const addTask = async (req, res) => {
       createdBy,
     });
 
+    const assigneDetails = await User.findById(assignedTo).select("-password");
+    const projectDetails = await Project.findById(projectId);
+    const userDetails = await User.findById(createdBy);
+    const html = taskCreatedTemplate({
+      assigneDetails,
+      projectDetails,
+      userDetails,
+      taskDetails: req.body,
+    });
+
+    customMailGenerator(
+      assigneDetails.email,
+      html,
+      `New Task has been Assigned to you - ${projectDetails?.name}`,
+      "HTML"
+    );
+
     const checkForWriteAccess = await checkAccess(
       memberId,
       Config.taskModuleId
@@ -45,15 +68,16 @@ export const addTask = async (req, res) => {
       return res.status(400).json("Access Denied Please contact the Owner");
     }
     const task = await newTask.save();
-    const userDetails = await User.findById(createdBy);
     const taskHistory = new TaskHistory({
       taskId: task?._id,
       createdBy,
       description: `The Task has been Created by ${userDetails?.name}`,
     });
     await taskHistory.save();
+
     return res.status(200).json(task);
   } catch (err) {
+    console.log(err);
     return res.status(500).json(err._message);
   }
 };
@@ -213,7 +237,6 @@ export const editTask = async (req, res) => {
   try {
     const { _id, memberId, userId, ...updateFields } = req.body;
 
-    
     const updateKeys = Object.keys(updateFields);
     if (!memberId) {
       return res
@@ -292,5 +315,72 @@ export const getTaskHistory = async (req, res) => {
     return res.status(200).json(taskHistory);
   } catch (error) {
     return res.status(500).json(error.message);
+  }
+};
+
+export const getDailyDueTask = async () => {
+  try {
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    const dueForDay = await Task.aggregate([
+      {
+        $match: {
+          endDate: {
+            $gte: new Date(currentDate),
+            $lt: new Date(`${currentDate}T23:59:59.999Z`),
+          },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "projectDetails",
+        },
+      },
+      { $unwind: "$projectDetails" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: "$createdBy" },
+      {
+        $group: {
+          _id: "$assignedTo",
+          tasks: {
+            $push: "$$ROOT", // Push the entire document into the tasks array
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "assignedToDetails",
+        },
+      },
+      { $unwind: "$assignedToDetails" },
+    ]);
+    dueForDay?.map((data) => {
+      const html = taskDueDateRemainderTemplate(data);
+      customMailGenerator(
+        data?.assignedToDetails.email,
+        html,
+        `REMINDER - THERE ARE TASKS DUE FOR THE DAY`,
+        "HTML"
+      );
+    });
+
+
+  } catch (error) {
+    console.log(error);
+
   }
 };

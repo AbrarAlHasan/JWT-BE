@@ -26,3 +26,21 @@ export const mailGenerator = (email, otp) => {
     .then((res) => {})
     .catch((err) => console.log(err));
 };
+
+export const customMailGenerator = (email, content, subject, type = "TEXT") => {
+  let message = {
+    from: "abraralhasanprogrammer@gmail.com",
+    to: email,
+    subject: subject,
+  };
+  if (type === "TEXT") {
+    message.text = content;
+  } else {
+    message.html = content;
+  }
+
+  transporter
+    .sendMail(message)
+    .then((res) => {})
+    .catch((err) => console.log(err));
+};
