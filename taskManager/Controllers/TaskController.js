@@ -93,9 +93,10 @@ export const getTasks = async (req, res) => {
       query.progress = 100; // Tasks with progress = 100
     } else if (status === "breached") {
       const currentDate = new Date().toISOString().split("T")[0];
-      query.endDate = { $lt: new Date(`${currentDate}T23:59:59.999Z`) }; // Tasks with endDate less than today's date
+      query.endDate = { $lt: new Date(`${currentDate}T00:00:00.000Z`) }; // Tasks with endDate less than today's date
     }
     const tasks = await Task.find(query).populate("assignedTo", "name");
+
 
     return res.status(200).json(tasks);
   } catch (err) {
