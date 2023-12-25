@@ -11,7 +11,9 @@ import ModuleRoute from "./taskManager/Routes/ModulesRoute.js";
 import AccessRoute from "./taskManager/Routes/AccessControlRoute.js";
 
 import CustomError from "./Utils/CustomError.js";
-import runAllCronShedulers from './taskManager/Scheduler/index.js'
+import runAllCronShedulers from "./taskManager/Scheduler/index.js";
+
+import axios from "axios";
 
 dotenv.config();
 
@@ -28,6 +30,9 @@ app.use("/taskManager/task", TaskRoute);
 app.use("/taskManager/projectMember", ProjectMemberRoute);
 app.use("/taskManager/module", ModuleRoute);
 app.use("/taskManager/checkAccess", AccessRoute);
+app.use("/dummy", (req, res) => {
+  res.status(200).send("Dummy endpoint triggered successfully.");
+});
 
 app.all("*", (req, res, next) => {
   const err = new CustomError(
@@ -49,6 +54,15 @@ mongoose
         `Database is Connected and Server is Running on Port:${port}`
       );
     });
-    // runAllCronShedulers()
+    runAllCronShedulers();
+    setInterval(() => {
+      axios.get(`http://localhost:${port}/dummy`)
+      .then(response => {
+        console.log('Triggered', response.data);
+      })
+      .catch(error => {
+        console.error('Error triggering endpoint:', error);
+      });
+    }, 13 * 60 * 1000);
   })
   .catch((err) => console.log(`${err} did not connect`));

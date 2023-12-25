@@ -16,7 +16,13 @@ const TaskHistorySchema = new Schema(
     },
     description: {
       type: String,
+    },
+    type: {
+      type: String,
       required: true,
+    },
+    comments: {
+      type: String,
     },
   },
   { timestamps: true }

@@ -27,7 +27,13 @@ export const mailGenerator = (email, otp) => {
     .catch((err) => console.log(err));
 };
 
-export const customMailGenerator = (email, content, subject, type = "TEXT") => {
+export const customMailGenerator = (
+  email,
+  content,
+  subject,
+  type = "TEXT",
+  ccEmail = undefined
+) => {
   let message = {
     from: "abraralhasanprogrammer@gmail.com",
     to: email,
@@ -37,6 +43,9 @@ export const customMailGenerator = (email, content, subject, type = "TEXT") => {
     message.text = content;
   } else {
     message.html = content;
+  }
+  if (ccEmail) {
+    message.cc = ccEmail;
   }
 
   transporter

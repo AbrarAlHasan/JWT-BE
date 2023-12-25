@@ -72,6 +72,7 @@ export const addTask = async (req, res) => {
       taskId: task?._id,
       createdBy,
       description: `The Task has been Created by ${userDetails?.name}`,
+      type: "history",
     });
     await taskHistory.save();
 
@@ -97,7 +98,6 @@ export const getTasks = async (req, res) => {
     }
     const tasks = await Task.find(query).populate("assignedTo", "name");
 
-
     return res.status(200).json(tasks);
   } catch (err) {
     return res.status(500).json(err.message);
@@ -122,7 +122,7 @@ export const getMyTasks = async (req, res) => {
 
     const tasks = await Task.find(query);
 
-    console.log(tasks)
+    console.log(tasks);
 
     return res.status(200).json(tasks);
   } catch (err) {
@@ -279,6 +279,7 @@ export const editTask = async (req, res) => {
                 taskKeyDescription[keyName]
               } to ${formatDateTimeTimezone(updateFields[keyName])}`
             : `${userDetails?.name} changed the ${taskKeyDescription[keyName]} to ${updateFields[keyName]}`,
+        type: "history",
       };
     });
 
@@ -380,10 +381,36 @@ export const getDailyDueTask = async () => {
         "HTML"
       );
     });
-
-
   } catch (error) {
     console.log(error);
+  }
+};
 
+export const addComments = async (req, res) => {
+  try {
+    const { taskId, comments, userId } = req.body;
+    const taskDetails = await Task.findById(taskId);
+    const assignedToDetails = await User.findById(taskDetails.assignedTo);
+    const createdBy = await User.findById(taskDetails.createdBy);
+    // console.log({ taskDetails, assignedToDetails, createdBy });
+
+    customMailGenerator(
+      assignedToDetails.email,
+      "A New Comment has Added",
+      `New Comment has been Added - ${taskDetails?.name}`,
+      createdBy.email
+    );
+
+    const newComment = new TaskHistory({
+      taskId,
+      comments,
+      createdBy: userId,
+      type: "comment",
+    });
+
+    const savedComment = await newComment.save();
+    return res.status(200).json(savedComment);
+  } catch (error) {
+    return res.status(500).json(error.message);
   }
 };

@@ -12,6 +12,7 @@ router.route("/getProjects/:userId").get(checkAccessBearerToken,controller.getPr
 router.route("/getMembers/:projectId").get(checkAccessBearerToken,controller.getMembers);
 router.route('/editTask').post(checkAccessBearerToken,controller.editTask)
 router.route('/taskHistory/:taskId').get(checkAccessBearerToken,controller.getTaskHistory)
+router.route('/taskHistory/addComment').post(checkAccessBearerToken,controller.addComments)
 // router.route('/getDueTasks/get/new').get(controller.getDailyDueTask)
 
 export default router;
