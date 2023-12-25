@@ -56,7 +56,7 @@ mongoose
     });
     runAllCronShedulers();
     setInterval(() => {
-      axios.get(`http://localhost:${port}/dummy`)
+      axios.get(`https://personal-project-app-backend-service.onrender.com/dummy`)
       .then(response => {
         console.log('Triggered', response.data);
       })
